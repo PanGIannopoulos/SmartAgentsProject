@@ -13,6 +13,8 @@ public class GridEnvironment extends Environment {
     private int agentX, agentY;
     private List<Target> targets;
     private Random rand = new Random();
+    private List<Obstacle> obstacles;
+
 
     @Override
     public void init(String[] args) {
@@ -48,18 +50,36 @@ public class GridEnvironment extends Environment {
             System.out.println("Target " + target.color + " placed at: (" + x + ", " + y + ")");
 
         }
+
+        obstacles = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            int x, y;
+            do {
+                x = rand.nextInt(GRID_SIZE);
+                y = rand.nextInt(GRID_SIZE);
+            } while (isPositionOccupied(x, y));
+
+            Obstacle obs = new Obstacle(x, y);
+            obstacles.add(obs);
+            System.out.println("Obstacle placed at: (" + x + ", " + y + ")");
+        }
         updatePercepts();
     }
 
     private boolean isPositionOccupied(int x, int y) {
-        // Έλεγχος αν η θέση είναι κατειλημμένη από κάποιον στόχο
+        if (x == agentX && y == agentY) return true;
+
         for (Target t : targets) {
-            if (t.x == x && t.y == y) {
-                return true;  // Η θέση είναι κατειλημμένη
+            if (t.x == x && t.y == y) return true;
+        }
+        if (obstacles != null) {
+            for (Obstacle o : obstacles) {
+                if (o.x == x && o.y == y) return true;
             }
         }
-        return false;  // Η θέση είναι κενή
+        return false;
     }
+
     @Override
     public boolean executeAction(String agName, jason.asSyntax.Structure action) {
         String act = action.getFunctor();
@@ -100,43 +120,52 @@ public class GridEnvironment extends Environment {
     public void updatePercepts() {
         clearAllPercepts();
 
-        // Προσθήκη αντίληψης θέσης του πράκτορα
         addPercept(Literal.parseLiteral("pos(" + agentX + "," + agentY + ")"));
 
-        // Προσθήκη αντίληψης στόχων
         for (Target t : targets) {
-            addPercept(Literal.parseLiteral("target(" + t.color + "," + t.reward + "," + t.x + "," + t.y + ")"));
+            addPercept(Literal.parseLiteral("target(" + t.color + "," + t.x + "," + t.y + ")"));
+            // Μπορείς αργότερα να προσθέσεις ξεχωριστά και την πληροφορία reward αν χρειαστεί
         }
     }
 
     public void printGrid() {
-        // Δημιουργία του πλέγματος 9x9
         StringBuilder grid = new StringBuilder();
+
         for (int y = 0; y < GRID_SIZE; y++) {
             for (int x = 0; x < GRID_SIZE; x++) {
                 if (x == agentX && y == agentY) {
-                    // Αν η τρέχουσα θέση είναι του πράκτορα, τοποθέτησε τον πράκτορα
                     grid.append("A ");  // A για Agent
                 } else {
-                    boolean targetFound = false;
-                    // Έλεγχος αν υπάρχει στόχος στη θέση (x, y)
-                    for (Target t : targets) {
-                        if (t.x == x && t.y == y) {
-                            grid.append(t.color.charAt(0) + " ");  // Βάλε το αρχικό γράμμα του χρώματος του στόχου
-                            targetFound = true;
+                    boolean printed = false;
+
+                    // Έλεγχος αν υπάρχει εμπόδιο
+                    for (Obstacle o : obstacles) {
+                        if (o.x == x && o.y == y) {
+                            grid.append("X ");  // X για εμπόδιο
+                            printed = true;
                             break;
                         }
                     }
-                    if (!targetFound) {
-                        // Αν δεν υπάρχει στόχος, βάλε κενό ή άλλη ένδειξη
-                        grid.append(". ");  // "." για κενό χώρο
+
+                    if (!printed) {
+                        // Έλεγχος αν υπάρχει στόχος στη θέση (x, y)
+                        for (Target t : targets) {
+                            if (t.x == x && t.y == y) {
+                                grid.append(t.color.charAt(0) + " ");  // Το πρώτο γράμμα του χρώματος
+                                printed = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!printed) {
+                        grid.append(". ");  // Κενός χώρος
                     }
                 }
             }
             grid.append("\n");
         }
 
-        // Εκτύπωση του πλέγματος
         System.out.println(grid.toString());
     }
 
@@ -151,6 +180,15 @@ public class GridEnvironment extends Environment {
         }
 
         void setPosition(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    static class Obstacle {
+        int x, y;
+
+        Obstacle(int x, int y) {
             this.x = x;
             this.y = y;
         }

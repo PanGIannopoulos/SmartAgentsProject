@@ -9,23 +9,23 @@ import environment.GridEnvironment;
 public class Main {
     public static void main(String[] args) {
 
+        // Δημιουργία του περιβάλλοντος και αρχικοποίηση
         GridEnvironment env = new GridEnvironment();
-        env.init(new String[] {});  // Αρχικοποίηση του περιβάλλοντος
+        env.init(new String[] {});  // Αρχικοποίηση του περιβάλλοντος με στόχους και εμπόδια
 
-        // Εκτύπωση αρχικής κατάστασης
+        // Εκτύπωση αρχικής κατάστασης του περιβάλλοντος
         env.updatePercepts();
 
-        // Κίνηση του πράκτορα προς τα επάνω
-        env.executeAction("agent1", new jason.asSyntax.Structure("move_up"));
-
-        // Εκτύπωση νέας κατάστασης
-        env.updatePercepts();
-
-        env.printGrid();
+        // Εκτέλεση του πράκτορα που έχει υλοποιηθεί με το ASL
         try {
+            // Ορίζουμε και τρέχουμε τον πράκτορα που έχει γραφτεί στο "FirstAgent.mas2j"
             RunLocalMAS.main(new String[] { "agents-folder/FirstAgent.mas2j" });
         } catch (JasonException e) {
             e.printStackTrace();
         }
+
+        // Εκτύπωση νέας κατάστασης του περιβάλλοντος μετά την κίνηση του πράκτορα
+        env.updatePercepts();
+        env.printGrid();
     }
 }
