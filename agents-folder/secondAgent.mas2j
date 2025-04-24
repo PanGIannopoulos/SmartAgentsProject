@@ -1,6 +1,6 @@
 MAS simple {
     infrastructure: Centralised
-    environment: environment.GridEnvironment
+    env: env.GridEnvironment
 
     agents:
         john secondAgent.asl;  // Agent name and ASL file
@@ -8,7 +8,7 @@ MAS simple {
     aslSourcePath:
         "agents-folder/AgentsAsl";  // Path to ASL files
 
-    // Optional but recommended for your grid environment:
+    // Optional but recommended for your grid env:
     executionControl:
         sync = true;  // Synchronized execution
         delay = 200;  // 200ms delay between cycles (matches your Thread.sleep)

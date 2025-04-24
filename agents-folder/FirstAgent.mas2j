@@ -1,5 +1,9 @@
 MAS simple {
-    agents:       john openAgent ;
 
-        aslSourcePath: "agents-folder/AgentsAsl";
+       environment: env.GridEnvironment
+
+    agents:
+        john openAgent;
+
+    aslSourcePath: "agents-folder/AgentsAsl";
 }

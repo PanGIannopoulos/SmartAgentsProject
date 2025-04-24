@@ -1,4 +1,4 @@
-package environment;
+package env;
 
 import jason.asSyntax.Literal;
 import jason.environment.Environment;

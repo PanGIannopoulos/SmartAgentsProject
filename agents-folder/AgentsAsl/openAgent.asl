@@ -1,8 +1,14 @@
 !start.
 
 +!start : true <-
-    .print("Starting...");
+    .print("Starting...");.
     !go_to_target.
+    //!show_percepts.
+
++!show_percepts : true <-
+    .percepts(L);
+    .print("Percepts: ", L).
+
 
 +!go_to_target : target(C, X, Y) & pos(X1, Y1) <-
     .print("Going to target at (" ); .print(X); .print(","); .print(Y); .print(")");

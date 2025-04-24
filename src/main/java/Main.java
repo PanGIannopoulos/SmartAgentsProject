@@ -1,6 +1,6 @@
 import jason.JasonException;
 import jason.infra.local.RunLocalMAS;
-import environment.GridEnvironment;
+import env.GridEnvironment;
 
 
 
