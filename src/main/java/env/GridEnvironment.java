@@ -6,14 +6,23 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 
+import jason.asSyntax.*;
+import jason.environment.*;
+
+
+import java.util.*;
+
 public class GridEnvironment extends Environment {
 
     private final int GRID_SIZE = 9;
     private final double MOVE_COST = 0.01;
     private int agentX, agentY;
+    private int step_count;
     private List<Target> targets;
     private Random rand = new Random();
     private List<Obstacle> obstacles;
+    private List<String> plannedPath = new ArrayList<>();
+
 
 
     @Override
@@ -80,36 +89,68 @@ public class GridEnvironment extends Environment {
         return false;
     }
 
+
     @Override
-    public boolean executeAction(String agName, jason.asSyntax.Structure action) {
+    public boolean executeAction(String agName, Structure action) {
         String act = action.getFunctor();
 
-        switch (act) {
-            case "move_up":
-                if (agentY > 0) agentY--;
-                break;
-            case "move_down":
-                if (agentY < GRID_SIZE - 1) agentY++;
-                break;
-            case "move_left":
-                if (agentX > 0) agentX--;
-                break;
-            case "move_right":
-                if (agentX < GRID_SIZE - 1) agentX++;
-                break;
-            case "reset":
-                resetWorld();
-                break;
-            default:
-                System.out.println("Unknown action: " + act);
+        if (act.equals("move") && action.getArity() == 1) {
+            String dir = action.getTerm(0).toString();
+
+            switch (dir) {
+                case "up":
+                    if (agentY > 0) agentY--;
+                    break;
+                case "down":
+                    if (agentY < GRID_SIZE - 1) agentY++;
+                    break;
+                case "left":
+                    if (agentX > 0) agentX--;
+                    break;
+                case "right":
+                    if (agentX < GRID_SIZE - 1) agentX++;
+                    break;
+                default:
+                    System.out.println("Unknown move direction: " + dir);
+                    return false;
+            }
+        }
+        else if (act.equals("pathfind") && action.getArity() == 2) {
+            try {
+                int goalX = (int)((NumberTerm)action.getTerm(0)).solve();
+                int goalY = (int)((NumberTerm)action.getTerm(1)).solve();
+
+                int startX = agentX;
+                int startY = agentY;
+
+                List<String> path = findPath(startX, startY, goalX, goalY);
+
+                plannedPath.clear();
+                plannedPath.addAll(path);
+
+                String pathStr = "[" + String.join(",", plannedPath) + "]";
+                addPercept(Literal.parseLiteral("plannedPath(" + pathStr + ")"));
+
+                System.out.println("JAVA Path planned: " + plannedPath);
+
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
                 return false;
+            }
+        }
+        else if (act.equals("reset")) {
+            resetWorld();
+        }
+        else {
+            System.out.println("Unknown action: " + act);
+            return false;
         }
 
-        // Ανανεώνει τις αντιλήψεις μετά από κάθε κίνηση
         updatePercepts();
 
         try {
-            Thread.sleep(200);  // μικρή καθυστέρηση για οπτικοποίηση / συγχρονισμό
+            Thread.sleep(200);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -123,8 +164,10 @@ public class GridEnvironment extends Environment {
         addPercept(Literal.parseLiteral("pos(" + agentX + "," + agentY + ")"));
 
         for (Target t : targets) {
-            addPercept(Literal.parseLiteral("target(" + t.color + "," + t.x + "," + t.y + ")"));
-            // Μπορείς αργότερα να προσθέσεις ξεχωριστά και την πληροφορία reward αν χρειαστεί
+            addPercept(Literal.parseLiteral("target(" + t.color + "," + t.x + "," + t.y + "," + t.reward + ")"));
+        }
+        for (Obstacle o : obstacles) {
+            addPercept(Literal.parseLiteral("obstacle(" + o.x + "," + o.y + ")"));
         }
     }
 
@@ -167,6 +210,101 @@ public class GridEnvironment extends Environment {
         }
 
         System.out.println(grid.toString());
+    }
+
+
+    public List<String> findPath(int startX, int startY, int goalX, int goalY) {
+        class Node implements Comparable<Node> {
+            int x, y;
+            int gCost; // Cost from start to this node
+            int hCost; // Heuristic cost to goal
+            Node parent;
+
+            Node(int x, int y, int gCost, int hCost, Node parent) {
+                this.x = x;
+                this.y = y;
+                this.gCost = gCost;
+                this.hCost = hCost;
+                this.parent = parent;
+            }
+
+            int fCost() {
+                return gCost + hCost;
+            }
+
+            @Override
+            public int compareTo(Node other) {
+                return Integer.compare(this.fCost(), other.fCost());
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Node node = (Node) o;
+                return x == node.x && y == node.y;
+            }
+
+            @Override
+            public int hashCode() {
+                return x * 31 + y;
+            }
+        }
+
+        PriorityQueue<Node> openSet = new PriorityQueue<>();
+        HashMap<String, Node> visited = new HashMap<>();
+
+        Node start = new Node(startX, startY, 0, manhattan(startX, startY, goalX, goalY), null);
+        openSet.add(start);
+
+        while (!openSet.isEmpty()) {
+            Node current = openSet.poll();
+
+            // Goal check
+            if (current.x == goalX && current.y == goalY) {
+                // Reconstruct path
+                List<String> path = new ArrayList<>();
+                Node n = current;
+                while (n.parent != null) {
+                    int dx = n.x - n.parent.x;
+                    int dy = n.y - n.parent.y;
+                    if (dx == 1) path.add(0, "right");
+                    else if (dx == -1) path.add(0, "left");
+                    else if (dy == 1) path.add(0, "down");
+                    else if (dy == -1) path.add(0, "up");
+                    n = n.parent;
+                }
+                return path;
+            }
+
+            visited.put(current.x + "," + current.y, current);
+
+            for (int[] dir : new int[][]{{0,1},{1,0},{0,-1},{-1,0}}) {
+                int newX = current.x + dir[0];
+                int newY = current.y + dir[1];
+
+                if (isValid(newX, newY)) {
+                    Node neighbor = new Node(newX, newY, current.gCost + 1, manhattan(newX, newY, goalX, goalY), current);
+                    if (!visited.containsKey(newX + "," + newY)) {
+                        openSet.add(neighbor);
+                    }
+                }
+            }
+        }
+
+        return new ArrayList<>(); // No path found
+    }
+
+    private int manhattan(int x1, int y1, int x2, int y2) {
+        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    }
+
+    private boolean isValid(int x, int y) {
+        if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return false;
+        for (Obstacle o : obstacles) {
+            if (o.x == x && o.y == y) return false;
+        }
+        return true;
     }
 
     static class Target {

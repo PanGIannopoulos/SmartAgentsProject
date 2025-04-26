@@ -1,37 +1,86 @@
 !start.
 
+/* Initialization */
 +!start : true <-
-    .print("Starting...");.
-    !go_to_target.
-    //!show_percepts.
+    .print("Mission started");
+    +steps(0);
+    +reward(0);
+    !select_target.
 
-+!show_percepts : true <-
-    .percepts(L);
-    .print("Percepts: ", L).
+/* Target Selection */
++!select_target :
+    target(C, X, Y, R) &
+    not done_target(C, X, Y, R) <-
+    .print(["Selected target ", C, " at (", X, ",", Y, ")"]);
+    !go_to_target(C, X, Y, R).
+
++!select_target :
+    target(_, _, _, _) & done_target(_, _, _, _) <-
+    .findall(done_target(C,X,Y,R), done_target(C,X,Y,R), DoneTargets);
+    .print("All targets completed!");
+    .print(["Completion report: ", DoneTargets]);
+    !mission_complete.
+
+/* Movement System */
++!go_to_target(C, X, Y,R) : pos(X1, Y1) <-
+    .print(["Navigating to ", C, " at (", X, ",", Y, ")"]);
+    !move_step(C, X1, Y1, X, Y, R).
+
++!move_step(_, _, _, _, _, _) : steps(31) <-
+    .print("31 step limit reached!");
+    !mission_complete.
+
++!move_step(C, X1, Y1, X, Y, R) : X1 < X <-
+    .print("Moving RIGHT toward ", C);
+    move(right);
+    !increment_steps;
+    !wait(C, X, Y, R).
+
++!move_step(C, X1, Y1, X, Y, R) : X1 > X <-
+    .print("Moving LEFT toward ", C);
+    move(left);
+    !increment_steps;
+    !wait(C, X, Y, R).
+
++!move_step(C, X1, Y1, X, Y, R) : Y1 < Y <-
+    .print("Moving DOWN toward ", C);
+    move(down);
+    !increment_steps;
+    !wait(C, X, Y, R).
+
++!move_step(C, X1, Y1, X, Y, R) : Y1 > Y <-
+    .print("Moving UP toward ", C);
+    move(up);
+    !increment_steps;
+    !wait(C, X, Y, R).
+
++!move_step(C, X, Y, X, Y, R) <-
+    .print("Already at ", C, "'s position");
+    !wait(C, X, Y, R).
+
+/* Target Completion */
++!wait(C, X, Y, R) : pos(X, Y) & target(C, X, Y, R) <-
+    .print(["Successfully reached ", C, " at (", X, ",", Y, ")"]);
+    !add_reward(R);
+    +done_target(C, X, Y, R);
+    !select_target.
+
++!wait(C, X, Y, R) : pos(X1, Y1) & not (X1 == X & Y1 == Y) <-
+    !move_step(C, X1, Y1, X, Y, R).
+
++!increment_steps : steps(N) & reward(R)  <-
+    -reward(R);
+    +reward(R-0.01);
+    -steps(N);
+    +steps(N+1).
+
++!add_reward(R) : reward(S) <-
+    -reward(S);
+    +reward(S + R).
 
 
-+!go_to_target : target(C, X, Y) & pos(X1, Y1) <-
-    .print("Going to target at (" ); .print(X); .print(","); .print(Y); .print(")");
-    !move_step(X1, Y1, X, Y).
 
-+!move_step(X1, Y1, X, Y) : X1 < X <-
-    .send(env, achieve, move(right)); !wait.
-
-+!move_step(X1, Y1, X, Y) : X1 > X <-
-    .send(env, achieve, move(left)); !wait.
-
-+!move_step(X1, Y1, X, Y) : Y1 < Y <-
-    .send(env, achieve, move(down)); !wait.
-
-+!move_step(X1, Y1, X, Y) : Y1 > Y <-
-    .send(env, achieve, move(up)); !wait.
-
-+!wait : pos(X1, Y1) & target(_, X, Y) & (X1 \== X | Y1 \== Y) <-
-    !move_step(X1, Y1, X, Y).
-
-+!wait : pos(X, Y) & target(_, X, Y) <-
-    .print("Target reached at (");
-    .print(X);
-    .print(",");
-    .print(Y);
-    .print(")");.
++!mission_complete : steps(TotalSteps) & reward(TotalReward) <-
+    .print("Total steps taken: ", TotalSteps);
+    .print("Total reward collected: ", TotalReward);
+    .print("Mission accomplished!").
