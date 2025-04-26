@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import jason.asSyntax.*;
-import jason.environment.*;
+
 
 
 import java.util.*;
@@ -15,9 +15,7 @@ import java.util.*;
 public class GridEnvironment extends Environment {
 
     private final int GRID_SIZE = 9;
-    private final double MOVE_COST = 0.01;
     private int agentX, agentY;
-    private int step_count;
     private List<Target> targets;
     private Random rand = new Random();
     private List<Obstacle> obstacles;
