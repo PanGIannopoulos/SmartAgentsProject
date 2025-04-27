@@ -129,7 +129,6 @@ public class GridEnvironment extends Environment {
                 String pathStr = "[" + String.join(",", plannedPath) + "]";
                 addPercept(Literal.parseLiteral("plannedPath(" + pathStr + ")"));
 
-                System.out.println("JAVA Path planned: " + plannedPath);
 
                 return true;
             } catch (Exception e) {
@@ -137,8 +136,30 @@ public class GridEnvironment extends Environment {
                 return false;
             }
         }
-        else if (act.equals("reset")) {
-            resetWorld();
+        else if (act.equals("find_best_target")) {
+
+
+            double temp = 0;
+            int index = 0;
+            for (Target t : targets) {
+
+                if(!t.isDone)
+                {
+                    List<String> path = findPath(agentX, agentY, t.x, t.y);
+                    double reward = t.reward - (0.01 *path.size());
+                    if(reward > temp)
+                    {
+                        index = targets.indexOf(t);
+                        temp = reward;
+                    }
+                }
+            }
+
+            Target SelectedTarget = targets.get(index);
+            SelectedTarget.isDone = true;
+            addPercept(Literal.parseLiteral("seltarget(" + SelectedTarget.color + "," + SelectedTarget.x + "," + SelectedTarget.y + "," + SelectedTarget.reward + ")"));
+            return true;
+
         }
         else {
             System.out.println("Unknown action: " + act);
@@ -309,6 +330,7 @@ public class GridEnvironment extends Environment {
         String color;
         double reward;
         int x, y;
+        boolean isDone;
 
         Target(String color, double reward) {
             this.color = color;

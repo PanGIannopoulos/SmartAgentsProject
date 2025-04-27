@@ -5,7 +5,16 @@
     .print("Mission started");
     +steps(0);
     +reward(0);
+    !initialize_not_done_targets;
     !select_target.
+
+
++!initialize_not_done_targets :
+    .findall(target(C, X, Y, R), target(C, X, Y, R), Targets);
+    .foreach(Target, Targets) <-
+        .print("Adding target ", Target, " to NotDone_targets");
+        +NotDone_targets(Target).
+
 
 /* Target Selection */
 +!select_target :

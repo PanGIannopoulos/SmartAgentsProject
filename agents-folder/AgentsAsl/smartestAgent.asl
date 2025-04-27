@@ -6,7 +6,7 @@
     +steps(0);
     +reward(0);
     !initialize_not_done_targets;
-    !select_target.
+    !find_target.
 
 +!initialize_not_done_targets : true <-
     .findall([C,X,Y,R], target(C, X, Y, R), Targets);
@@ -22,15 +22,27 @@
 
 
 
+
++!find_target : true <-
+     find_best_target;
+     !wait_for_best_target;.
+
++!wait_for_best_target : seltarget(C, X, Y, R) <-
+    !check_target(C, X, Y, R).
+
+
+
 /* Target Selection */
-+!select_target :
++!check_target(C, X, Y, R) :
+
     target(C, X, Y, R) & not done_target(C, X, Y, R) <-
+
     .print(["Selected target ", C, " at (", X, ",", Y, ")"]);
     !request_path_to_target(X, Y, C, R).
 
-+!select_target :
-    target(_, _, _, _) & done_target(_, _, _, _) <-
-    .findall(done_target(C, X, Y, R), done_target(C, X, Y, R), DoneTargets);
++!check_target(C, X, Y, R) :
+    target(C, X, Y, R) & done_target(C, X, Y, R) <-
+    .findall(done_target(D, F, G, H), done_target(D, F, G, H), DoneTargets);
     .print("All targets completed!");
     .print(["Completion report: ", DoneTargets]);
     !mission_complete.
@@ -56,8 +68,9 @@
 +!follow_path([], C, X, Y, R) <-
     .print("Target ", C, " reached!");
     !add_reward(R);
-    +done_target(C, X, Y, R);  /* Mark target as completed */
-    !select_target.  /* Recurse to select the next target */
+    +done_target(C, X, Y, R);
+    -notdone_target(C, X, Y, R);
+    !find_target.  /* Recurse to select the next target */
 
 
 /* Step and Reward Increment */
