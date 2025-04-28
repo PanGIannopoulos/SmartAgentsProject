@@ -3,7 +3,7 @@ MAS simple {
        environment: env.GridEnvironment
 
     agents:
-        john smartestAgent;
+        john astar;
 
     aslSourcePath: "agents-folder/AgentsAsl";
 }

@@ -2,15 +2,15 @@
 
 /* Initialization */
 +!start : true <-
-    .print("Mission started");
     +steps(0);
     +reward(0);
+    +total_targets(0);
+    +max_steps(31);
     !initialize_not_done_targets;
     !find_target.
 
 +!initialize_not_done_targets : true <-
     .findall([C,X,Y,R], target(C, X, Y, R), Targets);
-    .print("Targets found:", Targets);
     !process_targets(Targets).
 
 +!process_targets([]) <- true.
@@ -34,33 +34,27 @@
 
 /* Target Selection */
 +!check_target(C, X, Y, R) :
-
     target(C, X, Y, R) & not done_target(C, X, Y, R) <-
-
-    .print(["Selected target ", C, " at (", X, ",", Y, ")"]);
     !request_path_to_target(X, Y, C, R).
 
 +!check_target(C, X, Y, R) :
     target(C, X, Y, R) & done_target(C, X, Y, R) <-
     .findall(done_target(D, F, G, H), done_target(D, F, G, H), DoneTargets);
     .print("All targets completed!");
-    .print(["Completion report: ", DoneTargets]);
     !mission_complete.
 
 +!request_path_to_target(X, Y, C, R) : pos(X1, Y1) <-
-    .print("Requesting path to target (", C, ") at (", X, ",", Y, ")");
     pathfind(X, Y);  /* Calls the pathfinding method in Java */
     !wait_for_path(C, X, Y, R).  /* Pass the target details to wait_for_path */
 
 +!wait_for_path(C, X, Y, R) : plannedPath(Path) <-
-    .print("Received path: ", Path);
     !follow_path(Path, C, X, Y, R).  /* Pass target details to follow_path */
 
-+!follow_path([H|T], C, X, Y, R) : pos(X1, Y1) & steps(N) & N >= 31 <-
-    !mission_complete.
++!follow_path([H|T], C, X, Y, R) :
+    steps(N) & max_steps(Max) & N >= Max
+    <- !mission_complete.
 
 +!follow_path([H|T], C, X, Y, R) : pos(X1, Y1) <-
-    .print("Moving to next step: ", H);
     !increment_steps;
     move(H);  /* Move to the next step in the path */
     !follow_path(T, C, X, Y, R).  /* Keep passing the target details */
@@ -82,12 +76,15 @@
 
 
 
-+!add_reward(R) : reward(S) <-
++!add_reward(R) : reward(S) & total_targets(T) <-
+    -total_targets(T);
+    +total_targets(T+1);
     -reward(S);
-    +reward(S + R).
+    +reward(S + R);.
 
-/* Mission Completion */
-+!mission_complete : steps(TotalSteps) & reward(TotalReward) <-
+
++!mission_complete : steps(TotalSteps) & reward(TotalReward) & total_targets(TotalTargets) <-
     .print("Total steps taken: ", TotalSteps);
     .print("Total reward collected: ", TotalReward);
+    .print("Total targets collected: ", TotalTargets);
     .print("Mission accomplished!").
