@@ -1,9 +1,9 @@
-MAS simple {
+MAS project {
 
        environment: env.GridEnvironment
 
     agents:
-        john astar;
+        smartAgent;
 
     aslSourcePath: "agents-folder/AgentsAsl";
 }

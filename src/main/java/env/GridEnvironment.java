@@ -30,28 +30,25 @@ public class GridEnvironment extends Environment {
     }
 
     private void resetWorld() {
-        // Θέσε τον agent σε τυχαία θέση
+
         agentX = rand.nextInt(GRID_SIZE);
         agentY = rand.nextInt(GRID_SIZE);
         System.out.println("Agent starting position: (" + agentX + ", " + agentY + ")");
 
 
-        // Δημιούργησε 4 τυχαίους στόχους
         targets = new ArrayList<>();
         targets.add(new Target("green", 0.8));
         targets.add(new Target("yellow", 0.3));
         targets.add(new Target("blue", 0.6));
         targets.add(new Target("purple", 0.2));
 
-        // Στείλε τις αρχικές αντιλήψεις στον πράκτορα
 
         for (Target target : targets) {
             int x, y;
-            // Βρες μια τυχαία θέση που να είναι κενή
             do {
                 x = rand.nextInt(GRID_SIZE);
                 y = rand.nextInt(GRID_SIZE);
-            } while (isPositionOccupied(x, y));  // Αν η θέση είναι ήδη κατειλημμένη από στόχο, βρες άλλη
+            } while (isPositionOccupied(x, y));
 
             target.setPosition(x, y);
             System.out.println("Target " + target.color + " placed at: (" + x + ", " + y + ")");
@@ -166,13 +163,6 @@ public class GridEnvironment extends Environment {
             return false;
         }
 
-        updatePercepts();
-
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         return true;
     }
@@ -263,18 +253,14 @@ public class GridEnvironment extends Environment {
                 Node node = (Node) o;
                 return x == node.x && y == node.y;
             }
-
-            @Override
-            public int hashCode() {
-                return x * 31 + y;
-            }
         }
 
         PriorityQueue<Node> openSet = new PriorityQueue<>();
-        HashMap<String, Node> visited = new HashMap<>();
+        Map<String, Integer> gCostMap = new HashMap<>(); // Tracks best-known gCost for each node
 
         Node start = new Node(startX, startY, 0, manhattan(startX, startY, goalX, goalY), null);
         openSet.add(start);
+        gCostMap.put(startX + "," + startY, 0);
 
         while (!openSet.isEmpty()) {
             Node current = openSet.poll();
@@ -296,17 +282,27 @@ public class GridEnvironment extends Environment {
                 return path;
             }
 
-            visited.put(current.x + "," + current.y, current);
+            // Skip if we already found a better path to this node
+            if (current.gCost > gCostMap.getOrDefault(current.x + "," + current.y, Integer.MAX_VALUE)) {
+                continue;
+            }
 
             for (int[] dir : new int[][]{{0,1},{1,0},{0,-1},{-1,0}}) {
                 int newX = current.x + dir[0];
                 int newY = current.y + dir[1];
 
-                if (isValid(newX, newY)) {
-                    Node neighbor = new Node(newX, newY, current.gCost + 1, manhattan(newX, newY, goalX, goalY), current);
-                    if (!visited.containsKey(newX + "," + newY)) {
-                        openSet.add(neighbor);
-                    }
+                if (!isValid(newX, newY)) {
+                    continue;
+                }
+
+                int newGCost = current.gCost + 1;
+                String key = newX + "," + newY;
+
+                // Only proceed if this path to the neighbor is better
+                if (newGCost < gCostMap.getOrDefault(key, Integer.MAX_VALUE)) {
+                    Node neighbor = new Node(newX, newY, newGCost, manhattan(newX, newY, goalX, goalY), current);
+                    openSet.add(neighbor);
+                    gCostMap.put(key, newGCost);
                 }
             }
         }
